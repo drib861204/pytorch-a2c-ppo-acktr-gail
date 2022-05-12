@@ -97,7 +97,8 @@ def main():
                               actor_critic.recurrent_hidden_state_size)
 
     obs = envs.reset(None)
-    rollouts.obs[0].copy_(obs)
+    obs_tensor = torch.from_numpy(obs)
+    rollouts.obs[0].copy_(obs_tensor)
     rollouts.to(device)
 
     episode_rewards = deque(maxlen=10)
@@ -122,18 +123,21 @@ def main():
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action)
+            obs_tensor = torch.from_numpy(obs)
 
             for info in infos:
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
 
             # If done then clean the history of observations.
-            masks = torch.FloatTensor(
-                [[0.0] if done_ else [1.0] for done_ in done])
-            bad_masks = torch.FloatTensor(
-                [[0.0] if 'bad_transition' in info.keys() else [1.0]
-                 for info in infos])
-            rollouts.insert(obs, recurrent_hidden_states, action,
+            #masks = torch.FloatTensor(
+            #    [[0.0] if done_ else [1.0] for done_ in done])
+            #bad_masks = torch.FloatTensor(
+            #    [[0.0] if 'bad_transition' in info.keys() else [1.0]
+            #     for info in infos])
+            masks = torch.FloatTensor([[0.0] if done else [1.0]])
+            bad_masks = torch.FloatTensor([[1.0]])
+            rollouts.insert(obs_tensor, recurrent_hidden_states, action,
                             action_log_prob, value, reward, masks, bad_masks)
 
         with torch.no_grad():
